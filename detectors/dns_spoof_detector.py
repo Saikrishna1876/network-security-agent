@@ -4,6 +4,7 @@ import time
 from collections import defaultdict
 from dotenv import load_dotenv
 import dns.resolver  # For querying a trusted DNS server
+import requests
 
 load_dotenv()
 
@@ -50,6 +51,14 @@ def process_dns_packet(packet):
                                 print(
                                     f"[!!!] DNS SPOOFING DETECTED! Domain: {domain}, Reported IP: {resolved_ip}, Legitimate IP: {trusted_ip}"
                                 )
+                                url = os.getenv("NOTIFY_WEBHOOK_URL")
+                                if url:
+                                    requests.post(
+                                        url,
+                                        data=f"DNS SPOOFING DETECTED! Domain: {domain}, Reported IP: {resolved_ip}, Legitimate IP: {trusted_ip}".encode(
+                                            encoding="utf-8"
+                                        ),
+                                    )
                             else:
                                 print(
                                     f"[*] Legitimate DNS response for {domain}: {resolved_ip}"
@@ -65,6 +74,14 @@ def process_dns_packet(packet):
                             print(
                                 f"[!!!] DNS SPOOFING DETECTED! Domain: {domain}, Reported IP: {resolved_ip}, Legitimate IP: {trusted_ip}"
                             )
+                            url = os.getenv("NOTIFY_WEBHOOK_URL")
+                            if url:
+                                requests.post(
+                                    url,
+                                    data=f"DNS SPOOFING DETECTED! Domain: {domain}, Reported IP: {resolved_ip}, Legitimate IP: {trusted_ip}".encode(
+                                        encoding="utf-8"
+                                    ),
+                                )
                         # else:
                         #     print(f"[*] Legitimate DNS response for {domain}: {resolved_ip}")
 

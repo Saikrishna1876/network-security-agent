@@ -4,6 +4,7 @@ from scapy.layers.http import HTTP, HTTPRequest
 import os
 from dotenv import load_dotenv
 from urllib.parse import urlparse, parse_qs
+import requests
 
 load_dotenv()
 
@@ -51,7 +52,15 @@ def process_packet(packet):
                 if is_suspicious_url(full_url):
                     print(
                         f"[!!!] PHISHING ALERT: Suspicious URL detected in POST request: {full_url}"
-                    ) 
+                    )
+                    url = os.getenv("NOTIFY_WEBHOOK_URL")
+                    if url:
+                        requests.post(
+                            url,
+                            data=f"PHISHING ALERT: Suspicious URL detected in POST request: {full_url}".encode(
+                                encoding="utf-8"
+                            ),
+                        )
 
                 # Parse POST data and check for credential patterns
                 parsed_post_data = parse_qs(post_data)
@@ -61,6 +70,14 @@ def process_packet(packet):
                         print(
                             f"[!!!] PHISHING ALERT: Credential pattern '{decoded_field}' found in POST data to {full_url}. Values: {values}"
                         )
+                        url = os.getenv("NOTIFY_WEBHOOK_URL")
+                        if url:
+                            requests.post(
+                                url,
+                                data=f"PHISHING ALERT: Credential pattern '{decoded_field}' found in POST data to {full_url}. Values: {values}".encode(
+                                    encoding="utf-8"
+                                ),
+                            )
 
         except Exception as e:
             # Not an HTTP request or malformed HTTP

@@ -3,6 +3,7 @@ import os
 import time
 from collections import defaultdict
 from dotenv import load_dotenv
+import requests
 
 load_dotenv()
 
@@ -28,12 +29,28 @@ def process_packet(packet):
                 print(
                     f"[!!!] DDoS Alert: High traffic detected to {ip} - {count} packets in {TIME_WINDOW}s"
                 )
+                url = os.getenv("NOTIFY_WEBHOOK_URL")
+                if url:
+                    requests.post(
+                        url,
+                        data=f"DDoS Alert: High traffic detected to {ip} - {count} packets in {TIME_WINDOW}s".encode(
+                            encoding="utf-8"
+                        ),
+                    )
 
         for ip, count in syn_counts.items():
             if count > SYN_THRESHOLD:
                 print(
                     f"[!!!] SYN Flood Alert: High SYN packet rate to {ip} - {count} SYN packets in {TIME_WINDOW}s"
                 )
+                url = os.getenv("NOTIFY_WEBHOOK_URL")
+                if url:
+                    requests.post(
+                        url,
+                        data=f"SYN Flood Alert: High SYN packet rate to {ip} - {count} SYN packets in {TIME_WINDOW}s".encode(
+                            encoding="utf-8"
+                        ),
+                    )
 
         packet_counts = defaultdict(int)
         syn_counts = defaultdict(int)

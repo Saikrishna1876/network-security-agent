@@ -1,24 +1,18 @@
-import scapy.all as scapy
+from scapy.all import sniff, srp, get_if_addr, Ether, ARP
 import os
 import ipaddress
 from dotenv import load_dotenv
 import csv
 import datetime
+import requests
 
 load_dotenv()
 
 PACKET_LOG_FILE = "packet_log.csv"
 
 # Dictionary to store known IP-MAC mappings
-from .client_manager import clients, save_clients
-from .blacklist_manager import blacklist, save_blacklist
-
-
-def blacklist_mac(mac_address):
-    if mac_address not in blacklist:
-        blacklist.add(mac_address)
-        save_blacklist(blacklist)
-        print(f"[!!!] Blacklisted MAC address: {mac_address}")
+from managers.client_manager import clients, save_clients
+from actions.arp_spoof_action import blacklist_mac
 
 
 def log_packet_metadata(timestamp, src_mac, dst_mac, src_ip, dst_ip, packet_type):
@@ -44,7 +38,7 @@ def get_network_range(interface):
     Determines the network range (e.g., '192.168.1.0/24') for a given interface.
     """
     try:
-        ip_address = scapy.get_if_addr(interface)
+        ip_address = get_if_addr(interface)
         # Assuming a /24 subnet for simplicity. This might need adjustment for specific network configurations.
         # A more robust solution would involve parsing system network configuration or using a library like `netifaces`.
         network = ipaddress.ip_network(f"{ip_address}/24", strict=False)
@@ -61,8 +55,8 @@ def scan_network(ip_range, interface):
     print(f"[*] Scanning network {ip_range} on interface {interface}...")
     try:
         # Use arping to discover active hosts
-        ans, unans = scapy.srp(
-            scapy.Ether(dst="ff:ff:ff:ff:ff:ff") / scapy.ARP(pdst=ip_range),
+        ans, unans = srp(
+            Ether(dst="ff:ff:ff:ff:ff:ff") / ARP(pdst=ip_range),
             timeout=2,
             verbose=False,
             iface=interface,
@@ -94,30 +88,21 @@ def process_sniffed_packet(packet):
     dst_ip = None
     packet_type = "Unknown"
 
-    if packet.haslayer(scapy.Ether):
-        src_mac = packet[scapy.Ether].src
-        dst_mac = packet[scapy.Ether].dst
+    if packet.haslayer(Ether):
+        src_mac = packet[Ether].src
+        dst_mac = packet[Ether].dst
         packet_type = "Ethernet"
 
-        if src_mac in blacklist:
-            print(
-                f"[!!!] Detected blacklisted MAC address {src_mac} attempting to communicate."
-            )
-            log_packet_metadata(
-                timestamp, src_mac, dst_mac, src_ip, dst_ip, "Blacklisted"
-            )
-            return
-
-    if packet.haslayer(scapy.ARP):
-        src_ip = packet[scapy.ARP].psrc
-        dst_ip = packet[scapy.ARP].pdst
+    if packet.haslayer(ARP):
+        src_ip = packet[ARP].psrc
+        dst_ip = packet[ARP].pdst
         packet_type = "ARP"
 
         log_packet_metadata(timestamp, src_mac, dst_mac, src_ip, dst_ip, packet_type)
 
-        if packet[scapy.ARP].op == 2:  # ARP response (is-at)
-            sender_ip = packet[scapy.ARP].psrc
-            response_mac = packet[scapy.ARP].hwsrc
+        if packet[ARP].op == 2:  # ARP response (is-at)
+            sender_ip = packet[ARP].psrc
+            response_mac = packet[ARP].hwsrc
 
             if sender_ip in clients:
                 real_mac = get_mac_from_known_clients(sender_ip)
@@ -132,16 +117,24 @@ def process_sniffed_packet(packet):
                 print(
                     f"[?] Unknown device {sender_ip} responded with MAC {response_mac}. Potential new device or attack."
                 )
+                url = os.getenv("NOTIFY_WEBHOOK_URL")
+                if url:
+                    requests.post(
+                        url,
+                        data=f"Potential new device or attack from {sender_ip} with MAC {response_mac}".encode(
+                            encoding="utf-8"
+                        ),
+                    )
                 clients[sender_ip] = response_mac
                 save_clients(clients)
 
 
-def sniff(interface):
+def start_sniffing(interface):
     """
     Starts sniffing packets on the specified interface.
     """
     print(f"[*] Starting ARP monitor on interface {interface}...")
-    scapy.sniff(iface=interface, store=False, prn=process_sniffed_packet)
+    sniff(iface=interface, store=False, prn=process_sniffed_packet)
 
 
 if __name__ == "__main__":
@@ -155,4 +148,4 @@ if __name__ == "__main__":
         exit(1)
 
     scan_network(network_range, interface)
-    sniff(interface)
+    start_sniffing(interface)
