@@ -29,7 +29,7 @@ This project implements a network security agent with various detection and acti
 2.  **Install dependencies:**
     ```bash
     # Assuming Python and uv are installed
-    uv pip install -r requirements.txt
+    uv sync
     ```
 
 3.  **Environment Variables:**
