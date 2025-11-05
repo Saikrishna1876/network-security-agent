@@ -110,12 +110,16 @@ def sniff_http_traffic(interface):
     )
 
 
-if __name__ == "__main__":
+def run():
     interface = os.getenv("INTERFACE")
     if not interface:
         print(
             "Error: INTERFACE environment variable not set. Please set the INTERFACE environment variable (e.g., eth0, wlan0)."
         )
-        exit(1)
+        return
 
     sniff_http_traffic(interface)
+
+
+if __name__ == "__main__":
+    run()

@@ -137,15 +137,19 @@ def start_sniffing(interface):
     sniff(iface=interface, store=False, prn=process_sniffed_packet)
 
 
-if __name__ == "__main__":
+def run():
     interface = os.getenv("INTERFACE")
     if not interface:
         print("Error: INTERFACE environment variable not set.")
-        exit(1)
+        return
 
     network_range = get_network_range(interface)
     if not network_range:
-        exit(1)
+        return
 
     scan_network(network_range, interface)
     start_sniffing(interface)
+
+
+if __name__ == "__main__":
+    run()

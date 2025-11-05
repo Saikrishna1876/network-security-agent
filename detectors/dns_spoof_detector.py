@@ -97,10 +97,14 @@ def sniff_dns_traffic(interface):
     )
 
 
-if __name__ == "__main__":
+def run():
     interface = os.getenv("INTERFACE")
     if not interface:
         print("Error: INTERFACE environment variable not set.")
-        exit(1)
+        return
 
     sniff_dns_traffic(interface)
+
+
+if __name__ == "__main__":
+    run()
