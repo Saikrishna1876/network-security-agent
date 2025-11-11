@@ -1,5 +1,5 @@
 import scapy.all as scapy
-from scapy.layers.http import HTTP, HTTPRequest
+from scapy.layers.http import HTTP
 
 import os
 from dotenv import load_dotenv
@@ -79,7 +79,7 @@ def process_packet(packet):
                                 ),
                             )
 
-        except Exception as e:
+        except Exception:
             # Not an HTTP request or malformed HTTP
             pass
 

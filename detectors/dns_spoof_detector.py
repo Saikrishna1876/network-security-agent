@@ -1,7 +1,5 @@
 import scapy.all as scapy
 import os
-import time
-from collections import defaultdict
 from dotenv import load_dotenv
 import dns.resolver  # For querying a trusted DNS server
 import requests

@@ -6,13 +6,13 @@ import csv
 import datetime
 import requests
 
-load_dotenv()
-
-PACKET_LOG_FILE = "packet_log.csv"
-
 # Dictionary to store known IP-MAC mappings
 from managers.client_manager import clients, save_clients
 from actions.arp_spoof_action import blacklist_mac
+
+load_dotenv()
+
+PACKET_LOG_FILE = "packet_log.csv"
 
 
 def log_packet_metadata(timestamp, src_mac, dst_mac, src_ip, dst_ip, packet_type):
