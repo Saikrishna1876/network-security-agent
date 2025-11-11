@@ -80,28 +80,34 @@ def process_dns_packet(packet):
                                         encoding="utf-8"
                                     ),
                                 )
-                        # else:
-                        #     print(f"[*] Legitimate DNS response for {domain}: {resolved_ip}")
+                        else:
+                            print(
+                                f"[*] Legitimate DNS response for {domain}: {resolved_ip}"
+                            )
 
 
-def sniff_dns_traffic(interface):
+def sniff_dns_traffic(interface, stop_event):
     """
     Starts sniffing DNS traffic on the specified interface.
     """
     print(f"[*] Starting DNS spoofing detector on interface {interface}...")
     # Filter for UDP port 53 (DNS)
     scapy.sniff(
-        iface=interface, filter="udp port 53", store=False, prn=process_dns_packet
+        iface=interface,
+        filter="udp port 53",
+        store=False,
+        prn=process_dns_packet,
+        stop_filter=lambda x: stop_event.is_set(),
     )
 
 
-def run():
+def run(stop_event):
     interface = os.getenv("INTERFACE")
     if not interface:
         print("Error: INTERFACE environment variable not set.")
         return
 
-    sniff_dns_traffic(interface)
+    sniff_dns_traffic(interface, stop_event)
 
 
 if __name__ == "__main__":

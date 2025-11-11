@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import csv
 import datetime
 import requests
+import threading
 
 # Dictionary to store known IP-MAC mappings
 from managers.client_manager import clients, save_clients
@@ -129,15 +130,18 @@ def process_sniffed_packet(packet):
                 save_clients(clients)
 
 
-def start_sniffing(interface):
+def start_sniffing(interface, stop_event):
     """
-    Starts sniffing packets on the specified interface.
+    Starts sniffing packets on the specified interface, with graceful termination.
     """
     print(f"[*] Starting ARP monitor on interface {interface}...")
-    sniff(iface=interface, store=False, prn=process_sniffed_packet)
+    while not stop_event.is_set():
+        # Sniff for a short period, then check the stop_event
+        sniff(iface=interface, store=False, prn=process_sniffed_packet, timeout=1)
+    print(f"[*] ARP monitor on interface {interface} stopped gracefully.")
 
 
-def run():
+def run(stop_event: threading.Event):
     interface = os.getenv("INTERFACE")
     if not interface:
         print("Error: INTERFACE environment variable not set.")
@@ -148,8 +152,10 @@ def run():
         return
 
     scan_network(network_range, interface)
-    start_sniffing(interface)
+    start_sniffing(interface, stop_event)
 
 
 if __name__ == "__main__":
-    run()
+    # Create a dummy stop_event for standalone execution
+    stop_event = threading.Event()
+    run(stop_event)

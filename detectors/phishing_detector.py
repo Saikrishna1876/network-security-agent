@@ -84,7 +84,7 @@ def process_packet(packet):
             pass
 
 
-def sniff_http_traffic(interface):
+def sniff_http_traffic(interface, stop_event):
     """
     Starts sniffing HTTP traffic on the specified interface.
     """
@@ -107,10 +107,11 @@ def sniff_http_traffic(interface):
         store=False,
         prn=process_packet,
         session=scapy.TCPSession,
+        stop_filter=lambda x: stop_event.is_set(),
     )
 
 
-def run():
+def run(stop_event):
     interface = os.getenv("INTERFACE")
     if not interface:
         print(
@@ -118,7 +119,7 @@ def run():
         )
         return
 
-    sniff_http_traffic(interface)
+    sniff_http_traffic(interface, stop_event)
 
 
 if __name__ == "__main__":

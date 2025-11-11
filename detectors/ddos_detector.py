@@ -1,6 +1,7 @@
 import scapy.all as scapy
 import os
 import time
+import threading
 from collections import defaultdict
 from dotenv import load_dotenv
 import requests
@@ -66,19 +67,25 @@ def process_packet(packet):
             syn_counts[dest_ip] += 1
 
 
-def sniff_traffic(interface):
+def sniff_traffic(interface, stop_event):
     print(f"[*] Starting DDoS detector on interface {interface}...")
-    scapy.sniff(iface=interface, store=False, prn=process_packet)
+    scapy.sniff(
+        iface=interface,
+        store=False,
+        prn=process_packet,
+        stop_filter=lambda x: stop_event.is_set(),
+    )
 
 
-def run():
+def run(stop_event):
     interface = os.getenv("INTERFACE")
     if not interface:
         print("Error: INTERFACE environment variable not set.")
         return
 
-    sniff_traffic(interface)
+    sniff_traffic(interface, stop_event)
 
 
 if __name__ == "__main__":
-    run()
+    stop_event = threading.Event()
+    run(stop_event)
